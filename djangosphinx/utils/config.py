@@ -92,7 +92,7 @@ def get_index_context(index):
 
     return params
 
-def get_source_context(tables, index, valid_fields):
+def get_source_context(tables, index, valid_fields, content_type=None):
     params = DEFAULT_SPHINX_PARAMS
     params.update({
         'tables': tables,
@@ -104,6 +104,8 @@ def get_source_context(tables, index, valid_fields):
         'date_columns': [f[1] for f in valid_fields if issubclass(f[0], models.DateTimeField) or issubclass(f[0], models.DateField)],
         'float_columns': [f[1] for f in valid_fields if isinstance(f[0], models.FloatField) or isinstance(f[0], models.DecimalField)],
     })
+    if content_type is not None:
+        params['field_names'].append("%s as content_type" % content_type.id)
     try:
         from django.contrib.gis.db.models import PointField
         params.update({
@@ -152,13 +154,13 @@ def generate_source_for_model(model_class, index=None, sphinx_params={}):
         return (f.__class__, f.column, getattr(f.rel, 'to', None), f.choices)
 
     valid_fields = [_the_tuple(f) for f in model_class._meta.fields if _is_sourcable_field(f)]
-    
+
     table = model_class._meta.db_table
     
     if index is None:
         index = table
         
-    params = get_source_context([table], index, valid_fields)
+    params = get_source_context([table], index, valid_fields, ContentType.objects.get_for_model(model_class))
     params.update({
         'table_name': table,
         'primary_key': model_class._meta.pk.column,
