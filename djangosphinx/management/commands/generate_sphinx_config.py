@@ -14,7 +14,7 @@ class Command(BaseCommand):
     output_transaction = True
 
     def handle(self, *args, **options):
-        from djangosphinx.utils.config import generate_config_for_model
+        from djangosphinx.utils.config import generate_config_for_model, generate_sphinx_config
 
         model_classes = []
         if options['find_all']:
@@ -35,7 +35,9 @@ class Command(BaseCommand):
                 found += 1
                 print generate_config_for_model(model, index)
         if found == 0:
-            print "Unable to find any models in application which use standard SphinxSearch configuration."
+            raise CommandError("Unable to find any models in application which use standard SphinxSearch configuration.")
+
+        print generate_sphinx_config()
         #return u'\n'.join(sql_create(app, self.style)).encode('utf-8')
 
 

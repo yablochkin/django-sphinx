@@ -9,7 +9,7 @@ import os.path
 
 import djangosphinx.apis.current as sphinxapi
 
-__all__ = ('generate_config_for_model', 'generate_config_for_models')
+__all__ = ('generate_config_for_model', 'generate_config_for_models', 'generate_sphinx_config')
 
 DJANGO_MINOR_VERSION = float(".".join([str(django.VERSION[0]), str(django.VERSION[1])]))
 
@@ -65,8 +65,6 @@ if DJANGO_MINOR_VERSION < 1.2:
         'database_name': settings.DATABASE_NAME,
         'database_user': settings.DATABASE_USER,
         'database_password': settings.DATABASE_PASSWORD,
-        'log_file': '/var/log/sphinx/searchd.log',
-        'data_path': '/var/data',
     }
 else:
     DEFAULT_SPHINX_PARAMS = {
@@ -76,9 +74,14 @@ else:
         'database_name': settings.DATABASES['default']['NAME'],
         'database_user': settings.DATABASES['default']['USER'],
         'database_password': settings.DATABASES['default']['PASSWORD'],
-        'log_file': '/var/log/sphinx/searchd.log',
-        'data_path': '/var/data',
     }
+DEFAULT_SPHINX_PARAMS.update({
+    'log_path': getattr(settings, 'SPHINX_LOG_PATH', '/var/log/sphinx/searchd.log'),
+    'data_path': getattr(settings, 'SPHINX_DATA_PATH', '/var/data'),
+    'pid_file': getattr(settings, 'SPHINX_PID_FILE', '/var/log/searchd.pid'),
+    'sphinx_host': getattr(settings, 'SPHINX_HOST', '127.0.0.1'),
+    'sphinx_port': getattr(settings, 'SPHINX_PORT', '3312'),
+})
 
 def get_index_context(index):
     params = DEFAULT_SPHINX_PARAMS
@@ -112,6 +115,10 @@ def get_source_context(tables, index, valid_fields):
     except ImportError:
         # GIS not supported
         pass
+    return params
+
+def get_conf_context():
+    params = DEFAULT_SPHINX_PARAMS
     return params
 
 # Generate for single models
@@ -210,4 +217,13 @@ def generate_source_for_models(model_classes, index=None, sphinx_params={}):
 
     c = Context(params)
     
+    return t.render(c)
+
+
+def generate_sphinx_config(sphinx_params={}):
+    t = _get_template('sphinx.conf')
+
+    params = get_conf_context()
+    params.update(sphinx_params)
+    c = Context(params)
     return t.render(c)
