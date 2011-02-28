@@ -81,6 +81,7 @@ DEFAULT_SPHINX_PARAMS.update({
     'pid_file': getattr(settings, 'SPHINX_PID_FILE', '/var/log/searchd.pid'),
     'sphinx_host': getattr(settings, 'SPHINX_HOST', '127.0.0.1'),
     'sphinx_port': getattr(settings, 'SPHINX_PORT', '3312'),
+    'sphinx_api_version': getattr(settings, 'SPHINX_API_VERSION', 0x113),
 })
 
 def get_index_context(index):
