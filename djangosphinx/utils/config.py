@@ -8,6 +8,7 @@ from django.contrib.contenttypes.models import ContentType
 import os.path
 
 import djangosphinx.apis.current as sphinxapi
+from django.template.loader import select_template
 
 __all__ = ('generate_config_for_model', 'generate_config_for_models', 'generate_sphinx_config')
 
@@ -26,22 +27,16 @@ def _get_database_engine():
             return 'pgsql'
     raise ValueError, "Only MySQL and PostgreSQL engines are supported by Sphinx."
 
-def _get_template(name):
-    paths = (
-        os.path.join(os.path.dirname(__file__), '../apis/api%s/templates/' % (sphinxapi.VER_COMMAND_SEARCH,)),
-        os.path.join(os.path.dirname(__file__), '../templates/'),
-    )
-    for path in paths:
-        try:
-            fp = open(path + name, 'r')
-        except IOError:
-            continue
-        try:
-            t = Template(fp.read())
-            return t
-        finally:
-            fp.close()
-    raise ValueError, "Template matching name does not exist: %s." % (name,)
+def _get_template(name, index=None):
+    paths = [
+        'sphinx/api%s' % sphinxapi.VER_COMMAND_SEARCH,
+        'sphinx'
+    ]
+    
+    if index is not None:
+        paths.insert(0, 'sphinx/%s' % index)
+
+    return select_template(['%s/%s' % (path, name) for path in paths])
 
 def _is_sourcable_field(field):
     # We can use float fields in 0.98
@@ -135,7 +130,7 @@ def generate_config_for_model(model_class, index=None, sphinx_params={}):
 
 def generate_index_for_model(model_class, index=None, sphinx_params={}):
     """Generates a source configmration for a model."""
-    t = _get_template('index.conf')
+    t = _get_template('index.conf', index)
     
     if index is None:
         index = model_class._meta.db_table
@@ -149,7 +144,7 @@ def generate_index_for_model(model_class, index=None, sphinx_params={}):
 
 def generate_source_for_model(model_class, index=None, sphinx_params={}):
     """Generates a source configmration for a model."""
-    t = _get_template('source.conf')
+    t = _get_template('source.conf', index)
 
     def _the_tuple(f):
         return (f.__class__, f.column, getattr(f.rel, 'to', None), f.choices)
@@ -183,7 +178,7 @@ def generate_config_for_models(model_classes, index=None, sphinx_params={}):
 
 def generate_index_for_models(model_classes, index=None, sphinx_params={}):
     """Generates a source configmration for a model."""
-    t = _get_template('index-multiple.conf')
+    t = _get_template('index-multiple.conf', index)
     
     if index is None:
         index = '_'.join(m._meta.db_table for m in model_classes)
@@ -197,7 +192,7 @@ def generate_index_for_models(model_classes, index=None, sphinx_params={}):
 
 def generate_source_for_models(model_classes, index=None, sphinx_params={}):
     """Generates a source configmration for a model."""
-    t = _get_template('source-multiple.conf')
+    t = _get_template('source-multiple.conf', index)
     
     # We need to loop through each model and find only the fields that exist *exactly* the
     # same across models.
