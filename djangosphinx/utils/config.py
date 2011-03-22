@@ -95,7 +95,7 @@ def get_source_context(tables, index, valid_fields, content_type=None):
         'source_name': index,
         'index_name': index,
         'database_engine': _get_database_engine(),
-        'field_names': [f[1] for f in valid_fields],
+        'field_names': ['"%s"' % f[1] for f in valid_fields],
         'group_columns': [f[1] for f in valid_fields if f[2] or isinstance(f[0], models.BooleanField) or isinstance(f[0], models.IntegerField)],
         'date_columns': [f[1] for f in valid_fields if issubclass(f[0], models.DateTimeField) or issubclass(f[0], models.DateField)],
         'float_columns': [f[1] for f in valid_fields if isinstance(f[0], models.FloatField) or isinstance(f[0], models.DecimalField)],
