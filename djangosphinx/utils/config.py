@@ -19,7 +19,7 @@ def _get_database_engine():
         if settings.DATABASE_ENGINE == 'mysql':
             return settings.DATABASE_ENGINE
         elif settings.DATABASE_ENGINE.startswith('postgresql'):
-            return 'pgsql'    
+            return 'pgsql'
     else:
         if 'mysql' in settings.DATABASES['default']['ENGINE']:
             return 'mysql'
@@ -32,7 +32,7 @@ def _get_template(name, index=None):
         'sphinx/api%s' % sphinxapi.VER_COMMAND_SEARCH,
         'sphinx'
     ]
-    
+
     if index is not None:
         paths.insert(0, 'sphinx/%s' % index)
 
@@ -71,9 +71,9 @@ else:
         'database_password': settings.DATABASES['default']['PASSWORD'],
     }
 DEFAULT_SPHINX_PARAMS.update({
-    'log_path': getattr(settings, 'SPHINX_LOG_PATH', '/var/log/sphinx/searchd.log'),
-    'data_path': getattr(settings, 'SPHINX_DATA_PATH', '/var/data'),
-    'pid_file': getattr(settings, 'SPHINX_PID_FILE', '/var/log/searchd.pid'),
+    'log_path': getattr(settings, 'SPHINX_LOG_PATH', '/var/log/sphinxsearch/'),
+    'data_path': os.path.join(settings.ROOT_PATH, '_data'),
+    'pid_file': getattr(settings, 'SPHINX_PID_FILE', '/var/run/searchd.pid'),
     'sphinx_host': getattr(settings, 'SPHINX_HOST', '127.0.0.1'),
     'sphinx_port': getattr(settings, 'SPHINX_PORT', '3312'),
     'sphinx_api_version': getattr(settings, 'SPHINX_API_VERSION', 0x113),
@@ -95,13 +95,15 @@ def get_source_context(tables, index, valid_fields, content_type=None):
         'source_name': index,
         'index_name': index,
         'database_engine': _get_database_engine(),
-        'field_names': [f[1] for f in valid_fields],
+        'field_names': ['`{0}`'.format(f[1]) for f in valid_fields],
         'group_columns': [f[1] for f in valid_fields if f[2] or isinstance(f[0], models.BooleanField) or isinstance(f[0], models.IntegerField)],
         'date_columns': [f[1] for f in valid_fields if issubclass(f[0], models.DateTimeField) or issubclass(f[0], models.DateField)],
         'float_columns': [f[1] for f in valid_fields if isinstance(f[0], models.FloatField) or isinstance(f[0], models.DecimalField)],
     })
     if content_type is not None:
         params['field_names'].append("%s as content_type" % content_type.id)
+        if 'content_type' not in params['group_columns']:
+            params['group_columns'].append('content_type')
     try:
         from django.contrib.gis.db.models import PointField
         params.update({
@@ -131,15 +133,15 @@ def generate_config_for_model(model_class, index=None, sphinx_params={}):
 def generate_index_for_model(model_class, index=None, sphinx_params={}):
     """Generates a source configmration for a model."""
     t = _get_template('index.conf', index)
-    
+
     if index is None:
         index = model_class._meta.db_table
-    
+
     params = get_index_context(index)
     params.update(sphinx_params)
-    
+
     c = Context(params)
-    
+
     return t.render(c)
 
 def generate_source_for_model(model_class, index=None, sphinx_params={}):
@@ -152,10 +154,10 @@ def generate_source_for_model(model_class, index=None, sphinx_params={}):
     valid_fields = [_the_tuple(f) for f in model_class._meta.fields if _is_sourcable_field(f)]
 
     table = model_class._meta.db_table
-    
+
     if index is None:
         index = table
-        
+
     params = get_source_context([table], index, valid_fields, ContentType.objects.get_for_model(model_class))
     params.update({
         'table_name': table,
@@ -164,9 +166,9 @@ def generate_source_for_model(model_class, index=None, sphinx_params={}):
     params.update(sphinx_params)
 
     c = Context(params)
-    
+
     return t.render(c)
-    
+
 # Generate for multiple models (search UNIONs)
 
 def generate_config_for_models(model_classes, index=None, sphinx_params={}):
@@ -179,42 +181,42 @@ def generate_config_for_models(model_classes, index=None, sphinx_params={}):
 def generate_index_for_models(model_classes, index=None, sphinx_params={}):
     """Generates a source configmration for a model."""
     t = _get_template('index-multiple.conf', index)
-    
+
     if index is None:
         index = '_'.join(m._meta.db_table for m in model_classes)
-    
+
     params = get_index_context(index)
     params.update(sphinx_params)
-    
+
     c = Context(params)
-    
+
     return t.render(c)
 
 def generate_source_for_models(model_classes, index=None, sphinx_params={}):
     """Generates a source configmration for a model."""
     t = _get_template('source-multiple.conf', index)
-    
+
     # We need to loop through each model and find only the fields that exist *exactly* the
     # same across models.
     def _the_tuple(f):
         return (f.__class__, f.column, getattr(f.rel, 'to', None), f.choices)
-    
+
     valid_fields = [_the_tuple(f) for f in model_classes[0]._meta.fields if _is_sourcable_field(f)]
     for model_class in model_classes[1:]:
         valid_fields = [_the_tuple(f) for f in model_class._meta.fields if _the_tuple(f) in valid_fields]
-    
+
     tables = []
     for model_class in model_classes:
         tables.append((model_class._meta.db_table, ContentType.objects.get_for_model(model_class)))
-    
+
     if index is None:
         index = '_'.join(m._meta.db_table for m in model_classes)
-    
+
     params = get_source_context(tables, index, valid_fields)
     params.update(sphinx_params)
 
     c = Context(params)
-    
+
     return t.render(c)
 
 
