@@ -1,16 +1,17 @@
 import django
-from django.conf import settings
-from django.template import Template, Context
-
-from django.db import models
-from django.contrib.contenttypes.models import ContentType
-
 import os.path
 
-import djangosphinx.apis.current as sphinxapi
+from django.db import models
+from django.conf import settings
+from django.template import Context
 from django.template.loader import select_template
+from django.contrib.contenttypes.models import ContentType
+
+import djangosphinx.apis.current as sphinxapi
+
 
 __all__ = ('generate_config_for_model', 'generate_config_for_models', 'generate_sphinx_config')
+
 
 DJANGO_MINOR_VERSION = float(".".join([str(django.VERSION[0]), str(django.VERSION[1])]))
 
@@ -72,11 +73,13 @@ else:
     }
 DEFAULT_SPHINX_PARAMS.update({
     'log_path': getattr(settings, 'SPHINX_LOG_PATH', '/var/log/sphinxsearch/'),
-    'data_path': os.path.join(settings.ROOT_PATH, '_data'),
+    'data_path': getattr(settings, 'SPHINX_DATA_PATH', '/var/data/'),
     'pid_file': getattr(settings, 'SPHINX_PID_FILE', '/var/run/searchd.pid'),
+    'user_pid_file': getattr(settings, 'SPHINX_PID_FILE',
+                             '/var/run/searchd_{0}.pid'.format(DEFAULT_SPHINX_PARAMS['database_user'])),
     'sphinx_host': getattr(settings, 'SPHINX_HOST', '127.0.0.1'),
     'sphinx_port': getattr(settings, 'SPHINX_PORT', '3312'),
-    'sphinx_api_version': getattr(settings, 'SPHINX_API_VERSION', 0x113),
+    'sphinx_api_version': getattr(settings, 'SPHINX_API_VERSION', 0x116),
 })
 
 def get_index_context(index):
