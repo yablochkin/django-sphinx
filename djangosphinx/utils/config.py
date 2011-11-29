@@ -1,5 +1,5 @@
+import os
 import django
-import os.path
 
 from django.db import models
 from django.conf import settings
@@ -76,7 +76,7 @@ DEFAULT_SPHINX_PARAMS.update({
     'data_path': getattr(settings, 'SPHINX_DATA_PATH', '/var/data/'),
     'pid_file': getattr(settings, 'SPHINX_PID_FILE', '/var/run/searchd.pid'),
     'user_pid_file': getattr(settings, 'SPHINX_PID_FILE',
-                             '/var/run/searchd_{0}.pid'.format(DEFAULT_SPHINX_PARAMS['database_user'])),
+                             '/var/run/searchd_{0}.pid'.format(os.environ.get('USER'))),
     'sphinx_host': getattr(settings, 'SPHINX_HOST', '127.0.0.1'),
     'sphinx_port': getattr(settings, 'SPHINX_PORT', '3312'),
     'sphinx_api_version': getattr(settings, 'SPHINX_API_VERSION', 0x116),
