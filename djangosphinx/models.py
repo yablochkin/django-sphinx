@@ -1,24 +1,24 @@
-import select
-import socket
 import time
-import struct
 import warnings
 import operator
 import apis.current as sphinxapi
 import logging
 import re
+
 try:
     import decimal
 except ImportError:
-    from django.utils import _decimal as decimal # for Python 2.3
+    from django.utils import _decimal as decimal  # for Python 2.3
 
-from django.db.models.query import QuerySet, Q
+from django.db.models.query import  Q
 from django.conf import settings
-
-__all__ = ('SearchError', 'ConnectionError', 'SphinxSearch', 'SphinxRelation', 'SphinxQuerySet')
 
 from django.contrib.contenttypes.models import ContentType
 from datetime import datetime, date
+
+
+__all__ = ('SearchError', 'ConnectionError', 'SphinxSearch', 'SphinxRelation', 'SphinxQuerySet')
+
 
 # server settings
 SPHINX_SERVER           = getattr(settings, 'SPHINX_SERVER', 'localhost')
@@ -647,7 +647,13 @@ class SphinxQuerySet(object):
     def _get_passages(self, instance, fields, words):
         client = self._get_sphinx_client()
 
+        # https://groups.google.com/forum/#!msg/django-sphinx/WNL3a5h3MU8/nlGpujbfMEYJ
+        # Fix for passages
         docs = [getattr(instance, f) for f in fields]
+        for index, doc in enumerate(docs):
+            if not isinstance(doc, str) and not isinstance(doc, unicode):
+                docs[index] = repr(doc)
+
         if isinstance(self._passages_opts, dict):
             opts = self._passages_opts
         else:

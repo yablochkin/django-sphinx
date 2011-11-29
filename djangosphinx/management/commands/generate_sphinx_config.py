@@ -3,7 +3,6 @@ from django.db import models
 import itertools
 from optparse import make_option
 
-from djangosphinx.models import SphinxModelManager
 
 class Command(BaseCommand):
     help = "Prints generic configuration for any models which use a standard SphinxSearch manager."
@@ -34,10 +33,7 @@ class Command(BaseCommand):
             for index in indexes:
                 found += 1
                 print generate_config_for_model(model, index)
-        if found == 0:
+        if not found:
             raise CommandError("Unable to find any models in application which use standard SphinxSearch configuration.")
 
         print generate_sphinx_config()
-        #return u'\n'.join(sql_create(app, self.style)).encode('utf-8')
-
-
