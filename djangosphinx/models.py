@@ -644,6 +644,9 @@ class SphinxQuerySet(object):
         self._result_cache = results
         return results
 
+    def _get_first_index(self):
+        return self._index.split()[0]
+
     def _get_passages(self, instance, fields, words):
         client = self._get_sphinx_client()
 
@@ -660,7 +663,9 @@ class SphinxQuerySet(object):
             opts = {}
         if isinstance(self._index, unicode):
             self._index = self._index.encode('utf-8')
-        passages_list = client.BuildExcerpts(docs, self._index, words, opts)
+
+        # BuildExcerpts needs only index settins, not data, only one index allowed
+        passages_list = client.BuildExcerpts(docs, self._get_first_index(), words, opts)
 
         passages = {}
         c = 0
